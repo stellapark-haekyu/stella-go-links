@@ -1,6 +1,7 @@
 # go-links
 
 Internal shortlink server — type `go.test/anything` in your browser and land wherever you want!
+![go-links example](example.gif)
 ![go-links UI](example.png)
 - Manage links at `http://go.test`.
 - Type `go.test/<slug>` in your browser to redirect (e.g., `go.test/querypie` or `go.test/cafe`).
