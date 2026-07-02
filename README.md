@@ -37,7 +37,7 @@ echo "127.0.0.1   go.test" | sudo tee -a /etc/hosts
 **3. Add a shell alias** (add to `~/.zshrc`)
 
 ```bash
-alias start-golinks='sudo PORT=80 node /Users/YOUR_USERNAME/Downloads/go-links/server.js'
+alias start-golinks='sudo PORT=80 node <your_repo_path>/server.js'
 ```
 
 ```bash
