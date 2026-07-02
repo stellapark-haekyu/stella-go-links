@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>go-links</title>
+  <!-- Inline SVG favicon: a chain-link icon (no external file needed). -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --border: #e2e5ea;
+      --text: #1f2330;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --danger: #dc2626;
+      --ok: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+    .sub { color: var(--muted); margin: 0 0 1.75rem; font-size: 0.9rem; }
+    code { background: #eef0f3; padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.85em; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .card h2 { font-size: 0.95rem; margin: 0 0 0.85rem; color: var(--muted); font-weight: 600; }
+
+    input[type="text"], input[type="url"] {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 0.92rem;
+      background: #fff;
+      color: var(--text);
+    }
+    input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+
+    .add-form { display: grid; grid-template-columns: 200px 1fr auto; gap: 0.6rem; align-items: start; }
+    .field { display: flex; flex-direction: column; gap: 0.25rem; }
+    .hint { font-size: 0.78rem; min-height: 1rem; }
+    .hint.err { color: var(--danger); }
+    .hint.ok { color: var(--ok); }
+
+    button {
+      font-size: 0.88rem;
+      padding: 0.55rem 0.95rem;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.ghost { background: #fff; color: var(--text); border-color: var(--border); }
+    button.ghost:hover:not(:disabled) { background: #f3f4f6; }
+    button.danger { background: #fff; color: var(--danger); border-color: var(--border); }
+    button.danger:hover:not(:disabled) { background: #fef2f2; }
+    button.sm { padding: 0.35rem 0.6rem; font-size: 0.82rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+    td.actions { white-space: nowrap; text-align: right; }
+    td.actions button { margin-left: 0.35rem; }
+    .slug a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .slug a:hover { text-decoration: underline; }
+    .url { color: var(--muted); word-break: break-all; font-size: 0.88rem; }
+    .empty { color: var(--muted); text-align: center; padding: 2rem 0; }
+    .row-edit input { margin-bottom: 0.4rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔗 go-links</h1>
+    <p class="sub">Type a short slug to be redirected to its registered URL. e.g. <code>go/wiki</code></p>
+
+    <!-- Add link -->
+    <div class="card">
+      <h2>Add new link</h2>
+      <div class="add-form">
+        <div class="field">
+          <input type="text" id="new-slug" placeholder="slug (e.g. wiki)" autocomplete="off">
+          <div class="hint" id="slug-hint"></div>
+        </div>
+        <div class="field">
+          <input type="url" id="new-url" placeholder="https://example.com/...">
+          <div class="hint" id="url-hint"></div>
+        </div>
+        <button id="add-btn" disabled>Add</button>
+      </div>
+    </div>
+
+    <!-- Search + list -->
+    <div class="card">
+      <h2>Registered links</h2>
+      <input type="text" id="search" placeholder="Search by slug or URL..." autocomplete="off" style="margin-bottom:1rem">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:30%">SLUG</th>
+            <th>URL</th>
+            <th style="width:1%"></th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" hidden>No links to show.</div>
+    </div>
+  </div>
+
+  <script>
+    const origin = location.origin;
+    let links = {};        // { slug: url }
+    let editing = null;    // slug currently being edited inline
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+      ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+    async function api(method, url, body) {
+      const opts = { method, headers: {} };
+      if (body !== undefined) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
+      }
+      const res = await fetch(url, opts);
+      let data = null;
+      if (res.status !== 204) {
+        try { data = await res.json(); } catch { data = null; }
+      }
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    async function load() {
+      const { data } = await api('GET', '/api/links');
+      links = data || {};
+      render();
+    }
+
+    function render() {
+      const q = $('search').value.trim().toLowerCase();
+      const tbody = $('rows');
+      tbody.innerHTML = '';
+
+      const entries = Object.entries(links)
+        .filter(([slug, url]) =>
+          !q || slug.toLowerCase().includes(q) || url.toLowerCase().includes(q))
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+      $('empty').hidden = entries.length > 0;
+
+      for (const [slug, url] of entries) {
+        const tr = document.createElement('tr');
+        if (editing === slug) {
+          tr.className = 'row-edit';
+          tr.innerHTML = `
+            <td class="slug"><code>${esc(slug)}</code></td>
+            <td><input type="url" id="edit-url" value="${esc(url)}"></td>
+            <td class="actions">
+              <button class="sm" data-act="save" data-slug="${esc(slug)}">Save</button>
+              <button class="sm ghost" data-act="cancel">Cancel</button>
+            </td>`;
+        } else {
+          tr.innerHTML = `
+            <td class="slug"><a href="${origin}/${esc(slug)}" target="_blank" rel="noopener">${esc(slug)}</a></td>
+            <td class="url">${esc(url)}</td>
+            <td class="actions">
+              <button class="sm ghost" data-act="edit" data-slug="${esc(slug)}">Edit</button>
+              <button class="sm danger" data-act="del" data-slug="${esc(slug)}">Delete</button>
+            </td>`;
+        }
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Event delegation for table buttons.
+    $('rows').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      const slug = btn.dataset.slug;
+
+      if (act === 'edit') { editing = slug; render(); $('edit-url')?.focus(); }
+      else if (act === 'cancel') { editing = null; render(); }
+      else if (act === 'save') {
+        const url = $('edit-url').value.trim();
+        const { ok, data } = await api('PUT', `/api/links/${encodeURIComponent(slug)}`, { url });
+        if (!ok) { alert(data?.error || 'Update failed'); return; }
+        links[slug] = url; editing = null; render();
+      }
+      else if (act === 'del') {
+        if (!confirm(`Delete link '${slug}'?`)) return;
+        const { ok, data } = await api('DELETE', `/api/links/${encodeURIComponent(slug)}`);
+        if (!ok) { alert(data?.error || 'Delete failed'); return; }
+        delete links[slug]; render();
+      }
+    });
+
+    // Live search filter.
+    $('search').addEventListener('input', render);
+
+    // --- Add form: live duplicate / validity checks ---
+    const slugInput = $('new-slug');
+    const urlInput = $('new-url');
+    const addBtn = $('add-btn');
+    const slugHint = $('slug-hint');
+    const urlHint = $('url-hint');
+
+    function validUrl(v) {
+      try { const u = new URL(v); return u.protocol === 'http:' || u.protocol === 'https:'; }
+      catch { return false; }
+    }
+
+    function validateForm() {
+      const slug = slugInput.value.trim();
+      const url = urlInput.value.trim();
+      let slugOk = false, urlOk = false;
+
+      if (!slug) { slugHint.textContent = ''; slugHint.className = 'hint'; }
+      else if (!/^[a-zA-Z0-9_\-/]+$/.test(slug)) {
+        slugHint.textContent = 'Only letters, digits, - _ / are allowed'; slugHint.className = 'hint err';
+      } else if (Object.prototype.hasOwnProperty.call(links, slug)) {
+        slugHint.textContent = 'This slug already exists'; slugHint.className = 'hint err';
+      } else {
+        slugHint.textContent = 'Available'; slugHint.className = 'hint ok'; slugOk = true;
+      }
+
+      if (!url) { urlHint.textContent = ''; urlHint.className = 'hint'; }
+      else if (!validUrl(url)) {
+        urlHint.textContent = 'Must be an http(s):// address'; urlHint.className = 'hint err';
+      } else { urlHint.textContent = ''; urlHint.className = 'hint'; urlOk = true; }
+
+      addBtn.disabled = !(slugOk && urlOk);
+    }
+
+    slugInput.addEventListener('input', validateForm);
+    urlInput.addEventListener('input', validateForm);
+
+    addBtn.addEventListener('click', async () => {
+      const slug = slugInput.value.trim();
+      const url = urlInput.value.trim();
+      const { ok, data } = await api('POST', '/api/links', { slug, url });
+      if (!ok) { alert(data?.error || 'Add failed'); return; }
+      links[slug] = url;
+      slugInput.value = ''; urlInput.value = '';
+      validateForm(); render();
+      slugInput.focus();
+    });
+
+    // Submit with Enter from the URL field.
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !addBtn.disabled) addBtn.click();
+    });
+
+    load();
+  </script>
+</body>
+</html>
